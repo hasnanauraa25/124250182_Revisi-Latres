@@ -1,0 +1,433 @@
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+using namespace std;
+
+struct Bagasi{
+    int flightTime;
+    float berat;
+};
+
+struct Node{
+    Bagasi data;
+    Node* left;
+    Node* right;
+};
+
+Node* root = NULL;
+
+Node* buatNode(Bagasi b){
+    Node* baru = new Node;
+    baru->data = b;
+    baru->left = NULL;
+    baru->right = NULL;
+    return baru;
+}
+
+bool cekDuplikat(Node* root, int flightTime){
+    if(root == NULL){
+        return false;
+    }
+    if(root->data.flightTime == flightTime){
+        return true;
+    }
+    if(flightTime < root->data.flightTime){
+        return cekDuplikat(root->left, flightTime);
+    }
+    return cekDuplikat(root->right, flightTime);
+}
+
+Node* insertBST(Node* root, Bagasi b){
+    if(root == NULL){
+        return buatNode(b);
+    }
+    if(b.flightTime < root->data.flightTime){
+        root->left = insertBST(root->left, b);
+    }
+    else{
+        root->right = insertBST(root->right, b);
+    }
+    return root;
+}
+
+const int MAX_QUEUE = 100;
+
+struct Queue{
+    Bagasi items[MAX_QUEUE];
+    int front;
+    int rear;
+};
+
+Queue q;
+
+void initQueue(){
+    q.front = -1;
+    q.rear = -1;
+}
+
+bool isQueueEmpty(){
+    return q.front == -1;
+}
+
+bool isQueueFull(){
+    return (q.rear + 1) % MAX_QUEUE == q.front;
+}
+
+void enqueue(Bagasi b){
+
+    if(isQueueFull()){
+        cout << "Queue penuh!\n";
+        return;
+    }
+
+    if(isQueueEmpty()){
+        q.front = 0;
+        q.rear = 0;
+    }
+    else{
+        q.rear = (q.rear + 1) % MAX_QUEUE;
+    }
+
+    q.items[q.rear] = b;
+}
+
+Bagasi dequeue(){
+	
+    Bagasi kosong;
+    kosong.flightTime = 0;
+    kosong.berat = 0;
+
+    if(isQueueEmpty()){
+        return kosong;
+    }
+
+    Bagasi ambil = q.items[q.front];
+
+    if(q.front == q.rear){
+        q.front = -1;
+        q.rear = -1;
+    }
+    else{
+        q.front = (q.front + 1) % MAX_QUEUE;
+    }
+
+    return ambil;
+}
+
+const int MAX_STACK = 100;
+
+struct Stack{
+    Bagasi data[MAX_STACK];
+    int top;
+};
+
+Stack s;
+
+void initStack(){
+    s.top = -1;
+}
+
+bool isStackEmpty(){
+    return s.top == -1;
+}
+
+bool isStackFull(){
+    return s.top == MAX_STACK - 1;
+}
+
+void push(Bagasi b){
+
+    if(isStackFull()){
+        cout << "Stack penuh!\n";
+        return;
+    }
+
+    s.top++;
+    s.data[s.top] = b;
+}
+
+Bagasi pop(){
+
+    Bagasi kosong;
+    kosong.flightTime = 0;
+    kosong.berat = 0;
+
+    if(isStackEmpty()){
+        return kosong;
+    }
+
+    Bagasi ambil = s.data[s.top];
+    s.top--;
+
+    return ambil;
+}
+
+bool validJam(int jam){
+    int menit = jam % 100;
+    int hh = jam / 100;
+
+    if(hh < 0 || hh > 23){
+        return false;
+    }
+    if(menit < 0 || menit > 59){
+        return false;
+    }
+    return true;
+}
+
+void cetakBagasi(Bagasi b){
+    cout << "[Flight:"
+         << setfill('0') << setw(4)
+         << b.flightTime
+         << "|Berat:"
+         << fixed << setprecision(1)
+         << b.berat << "kg]";
+}
+
+void inputBagasi(){
+    Bagasi b;
+
+    cout << "\n--- Input Data Bagasi Baru ---\n";
+
+    while(true){
+
+        cout << "Flight Time (Format HHMM, cth: 1430): ";
+        cin >> b.flightTime;
+
+        if(!validJam(b.flightTime)){
+            cout << "ERROR: Format jam tidak valid (0000 - 2359, menit 00-59).\n";
+            continue;
+        }
+        if(cekDuplikat(root, b.flightTime)){
+            cout << "ERROR: Flight Time sudah ada.\n";
+            continue;
+        }
+        break;
+    }
+
+    while(true){
+        cout << "Berat Bagasi (kg, harus > 0): ";
+        cin >> b.berat;
+
+        if(b.berat <= 0){
+            cout << "ERROR: Berat harus positif.\n";
+            continue;
+        }
+
+        break;
+    }
+
+    root = insertBST(root, b);
+    cout << "\n-> Data berhasil masuk ke Database PTB.\n";
+}
+
+void inorder(Node* root){
+
+    if(root != NULL){
+
+        inorder(root->left);
+
+        cout << "-> ";
+        cetakBagasi(root->data);
+        cout << endl;
+
+        inorder(root->right);
+    }
+}
+
+void tampilPTB(){
+    cout << "\n--- Isi Database Bagasi (PTB Inorder) ---\n";
+
+    if(root == NULL){
+        cout << "(Database Kosong)\n";
+        return;
+    }
+    inorder(root);
+}
+
+void pindahKeQueue(Node* root){
+
+    if(root != NULL){
+
+        pindahKeQueue(root->left);
+        enqueue(root->data);
+        pindahKeQueue(root->right);
+    }
+}
+
+void hapusPTB(Node*& root){
+
+    if(root != NULL){
+        hapusPTB(root->left);
+        hapusPTB(root->right);
+
+        delete root;
+        root = NULL;
+    }
+}
+
+void menuPindahQueue(){
+    cout << "\n--- Memindahkan Data ke Konveyor ---\n";
+
+    if(root == NULL){
+        cout << "GAGAL: PTB Kosong! Input data dulu di Menu 1.\n";
+        return;
+    }
+    pindahKeQueue(root);
+    hapusPTB(root);
+
+    cout << "-> SUKSES: Semua data dipindahkan dari PTB ke Queue Konveyor.\n";
+    cout << "-> INFO: Database PTB sekarang telah dikosongkan.\n";
+}
+
+void tampilQueue(){
+
+    cout << "\n--- Isi Antrian Konveyor (Queue) ---\n";
+
+    if(isQueueEmpty()){
+        cout << "(Queue Kosong)\n";
+        return;
+    }
+
+    int i = q.front;
+
+    while(true){
+
+        cout << "-> ";
+        cetakBagasi(q.items[i]);
+        cout << endl;
+
+        if(i == q.rear){
+            break;
+        }
+        i = (i + 1) % MAX_QUEUE;
+    }
+}
+
+void scanningXray(){
+
+    cout << "\n--- Memulai Proses Scanning X-Ray ---\n";
+
+    if(isQueueEmpty()){
+        cout << "GAGAL: Konveyor kosong! Load data dulu di Menu 3.\n";
+        return;
+    }
+
+    cout << "Aturan Filter: Berat > 9.3 kg = OVERWEIGHT\n\n";
+
+    while(!isQueueEmpty()){
+
+        Bagasi b = dequeue();
+
+        cout << "Scan: ";
+        cetakBagasi(b);
+
+        if(b.berat > 9.3){
+
+            push(b);
+
+            cout << " -> STATUS: OVERWEIGHT! (Push ke Stack)";
+        }
+        else{
+            cout << " -> STATUS: AMAN (Lolos ke Pesawat)";
+        }
+        cout << endl;
+    }
+    cout << "\n-> Konveyor telah kosong. Proses scanning selesai.\n";
+}
+
+void tampilStack(){
+    cout << "\n--- Isi Area Isolasi (Tumpukan Stack) ---\n";
+    if(isStackEmpty()){
+        cout << "(Stack Kosong)\n";
+        return;
+    }
+    for(int i = s.top; i >= 0; i--){
+
+        cout << "[TOP] ";
+
+        cetakBagasi(s.data[i]);
+
+        cout << endl;
+    }
+}
+
+void pemeriksaanManual(){
+
+    cout << "\n--- Pemeriksaan Manual (Pop Stack sampai habis) ---\n";
+
+    if(isStackEmpty()){
+        cout << "INFO: Stack kosong. Tidak ada bagasi overweight.\n";
+        return;
+    }
+
+    while(!isStackEmpty()){
+
+        Bagasi b = pop();
+
+        cout << "Petugas memeriksa: ";
+
+        cetakBagasi(b);
+
+        cout << " -> SELESAI DIPERIKSA.\n";
+    }
+    cout << "\n-> Semua bagasi overweight telah diperiksa. Tumpukan kosong.\n";
+}
+
+int main(){
+    initQueue();
+    initStack();
+
+    int pilih;
+
+    do{
+        cout << "\n=== Sistem Keamanan Bandara ===\n";
+        cout << "1. [PTB] Check-In Bagasi (Input Data)\n";
+        cout << "2. [PTB] Lihat Database Bagasi (Cetak PTB)\n";
+        cout << "3. [PTB -> Queue] Pindahkan Semua ke Konveyor\n";
+        cout << "4. [Queue] Lihat Antrian Konveyor\n";
+        cout << "5. [Queue -> Stack] Proses Scanning X-Ray\n";
+        cout << "6. [Stack] Lihat Tumpukan Overweight\n";
+        cout << "7. [Stack Process] Pemeriksaan Manual\n";
+        cout << "0. Keluar\n";
+
+        cout << "Pilihan Anda: ";
+        cin >> pilih;
+
+        switch(pilih){
+            case 1:
+                inputBagasi();
+                break;
+            case 2:
+                tampilPTB();
+                break;
+            case 3:
+                menuPindahQueue();
+                break;
+            case 4:
+                tampilQueue();
+                break;
+            case 5:
+                scanningXray();
+                break;
+            case 6:
+                tampilStack();
+                break;
+            case 7:
+                pemeriksaanManual();
+                break;
+            case 0:
+                cout << "\nKeluar dari program...\n";
+                cout << "Terima kasih!\n";
+                break;
+            default:
+                cout << "Pilihan tidak valid!\n";
+        }
+        if(pilih != 0){
+            system("pause");
+            system("cls");
+        }
+
+    }while(pilih != 0);
+    return 0;
+}
